@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Analytics - Spendy{% endblock %}
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 2rem;">📊 Spending Analytics</h1>
+    
+    <!-- Financial Summary -->
+    <div class="stats-grid" style="margin-bottom: 3rem;">
+        <div class="stat-card primary">
+            <div class="stat-icon">💰</div>
+            <div class="stat-content">
+                <h3>Wallet Balance</h3>
+                <p class="stat-value">₹{{ "%.2f"|format(wallet_balance) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card danger">
+            <div class="stat-icon">💸</div>
+            <div class="stat-content">
+                <h3>Total Spent</h3>
+                <p class="stat-value">₹{{ "%.2f"|format(total_spent) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <h3>Budget Limit</h3>
+                <p class="stat-value">₹{{ "%.2f"|format(monthly_budget) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-icon">💵</div>
+            <div class="stat-content">
+                <h3>Available Funds</h3>
+                <p class="stat-value">₹{{ "%.2f"|format(wallet_balance) }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Spending -->
+    <div class="transactions-list">
+        <h2>Spending by Category</h2>
+        {% for category, total in category_totals.items() %}
+        <div class="transaction-item">
+            <div class="transaction-icon">
+                {% if category == 'Food' %}🍔
+                {% elif category == 'Transport' %}🚗
+                {% elif category == 'Shopping' %}🛍️
+                {% elif category == 'Bills' %}📱
+                {% elif category == 'Entertainment' %}🎬
+                {% elif category == 'Health' %}💊
+                {% elif category == 'UPI Payment' %}💸
+                {% elif category == 'Emergency Payment' %}🚨
+                {% else %}📦{% endif %}
+            </div>
+            <div class="transaction-details">
+                <div class="transaction-category">{{ category }}</div>
+                <div class="transaction-description">
+                    {{ "%.1f"|format((total / total_spent * 100) if total_spent > 0 else 0) }}% of total spending
+                </div>
+            </div>
+            <div class="transaction-amount">₹{{ "%.2f"|format(total) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Daily Spending -->
+    <div class="transactions-list" style="margin-top: 2rem;">
+        <h2>Daily Spending Trend</h2>
+        {% for date, total in daily_spending.items() %}
+        <div class="transaction-item">
+            <div class="transaction-details">
+                <div class="transaction-category">{{ date }}</div>
+            </div>
+            <div class="transaction-amount">₹{{ "%.2f"|format(total) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

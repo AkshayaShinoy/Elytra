@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Scan QR Code - Spendy{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upi-container">
+        <div class="qr-scanner-container">
+            <h2 style="margin-bottom: 1.5rem;">Scan QR Code to Pay</h2>
+            
+            <div class="qr-preview">
+                <div class="qr-scan-line"></div>
+            </div>
+            
+            <p style="color: var(--text-light); text-align: center; margin-top: 1.5rem;">
+                📷 Point your camera at the QR code<br>
+                <small>(This is a simulated scanner for demo purposes)</small>
+            </p>
+            
+            <div style="margin-top: 2rem;">
+                <button class="btn btn-primary btn-large" style="width: 100%;" onclick="simulateScan()">
+                    Simulate QR Scan
+                </button>
+                <button class="btn btn-large" style="width: 100%; margin-top: 1rem; background: rgba(255,255,255,0.1);" onclick="window.location.href='/upi-pay'">
+                    Back to Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function simulateScan() {
+    // Simulate scanning a QR code
+    const demoUPIs = [
+        {id: 'merchant@paytm', name: 'Coffee Shop'},
+        {id: 'store@phonepe', name: 'Grocery Store'},
+        {id: 'restaurant@gpay', name: 'Pizza Palace'}
+    ];
+    
+    const selected = demoUPIs[Math.floor(Math.random() * demoUPIs.length)];
+    
+    // Flash effect
+    document.querySelector('.qr-preview').style.background = 'rgba(0, 217, 255, 0.3)';
+    setTimeout(() => {
+        document.querySelector('.qr-preview').style.background = 'rgba(0, 0, 0, 0.3)';
+    }, 200);
+    
+    // Redirect to payment page with data
+    setTimeout(() => {
+        alert('QR Code Scanned!\n\nMerchant: ' + selected.name + '\nUPI ID: ' + selected.id);
+        window.location.href = '/upi-pay?upi_id=' + encodeURIComponent(selected.id) + '&name=' + encodeURIComponent(selected.name);
+    }, 500);
+}
+</script>
+{% endblock %}

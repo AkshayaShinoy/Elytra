@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}UPI Payment - Spendy{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upi-container">
+        <!-- Balance Card -->
+        <div class="upi-balance-card">
+            <div class="upi-balance-label">Available Balance</div>
+            <div class="upi-balance-amount">₹<span id="current-balance">{{ "%.2f"|format(balance) }}</span></div>
+        </div>
+
+        <!-- Payment Form -->
+        <div class="upi-payment-form" id="payment-form">
+            <h2 style="margin-bottom: 2rem; text-align: center;">Send Money via UPI</h2>
+
+            <!-- UPI ID Input -->
+            <div class="upi-input-group">
+                <div class="upi-input-icon">👤</div>
+                <input 
+                    type="text" 
+                    id="upi-id" 
+                    class="upi-input" 
+                    placeholder="Enter UPI ID (e.g., name@paytm)"
+                    autocomplete="off"
+                >
+                <div id="verify-status" class="upi-verify-status" style="display: none;"></div>
+            </div>
+
+            <!-- Amount Input -->
+            <div class="upi-input-group">
+                <div class="upi-input-icon">₹</div>
+                <input 
+                    type="number" 
+                    id="amount" 
+                    class="upi-input upi-amount-input" 
+                    placeholder="0.00"
+                    min="1"
+                    step="0.01"
+                >
+            </div>
+
+            <!-- Quick Amount Buttons -->
+            <div class="upi-quick-amounts">
+                <button class="quick-amount-btn" onclick="setAmount(100)">₹100</button>
+                <button class="quick-amount-btn" onclick="setAmount(500)">₹500</button>
+                <button class="quick-amount-btn" onclick="setAmount(1000)">₹1000</button>
+                <button class="quick-amount-btn" onclick="setAmount(2000)">₹2000</button>
+                <button class="quick-amount-btn" onclick="setAmount(5000)">₹5000</button>
+                <button class="quick-amount-btn" onclick="setAmount(10000)">₹10000</button>
+            </div>
+
+            <!-- Note Input -->
+            <div class="upi-input-group">
+                <div class="upi-input-icon">📝</div>
+                <input 
+                    type="text" 
+                    id="note" 
+                    class="upi-input" 
+                    placeholder="Add a note (optional)"
+                >
+            </div>
+
+            <!-- Pay Button -->
+            <button class="btn btn-success btn-large" style="width: 100%;" onclick="processPayment()">
+                <span id="pay-btn-text">Pay Now</span>
+                <span id="pay-btn-spinner" class="spinner" style="display: none;"></span>
+            </button>
+        </div>
+
+        <!-- Success Screen (Hidden Initially) -->
+        <div class="upi-payment-form" id="success-screen" style="display: none;">
+            <div class="upi-success-screen">
+                <div class="success-icon">✅</div>
+                <div class="success-title">Payment Successful!</div>
+                <div class="success-amount">₹<span id="success-amount">0</span></div>
+                
+                <div class="success-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Paid to</span>
+                        <span class="detail-value" id="success-recipient"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">UPI ID</span>
+                        <span class="detail-value" id="success-upi-id"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">UPI Ref ID</span>
+                        <span class="detail-value" id="success-ref"></span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Date & Time</span>
+                        <span class="detail-value" id="success-time"></span>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary btn-large" style="width: 100%; margin-top: 1rem;" onclick="resetForm()">
+                    Make Another Payment
+                </button>
+                <button class="btn btn-large" style="width: 100%; margin-top: 1rem; background: rgba(255,255,255,0.1);" onclick="window.location.href='/'">
+                    Back to Dashboard
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Contacts -->
+        {% if recent_contacts %}
+        <div class="upi-recent-contacts">
+            <h3>Recent Contacts</h3>
+            {% for contact in recent_contacts %}
+            <div class="contact-item" onclick="selectContact('{{ contact.upi_id }}', '{{ contact.name }}')">
+                <div class="contact-avatar">{{ contact.name[0].upper() }}</div>
+                <div class="contact-info">
+                    <div class="contact-name">{{ contact.name }}</div>
+                    <div class="contact-upi">{{ contact.upi_id }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Scan QR Button -->
+        <button class="btn btn-primary btn-large" style="width: 100%; margin-top: 2rem;" onclick="window.location.href='/scan-qr'">
+            📷 Scan QR Code to Pay
+        </button>
+    </div>
+</div>
+
+<script>
+let verifiedName = null;
+let debounceTimer = null;
+
+// UPI ID Verification
+document.getElementById('upi-id').addEventListener('input', function() {
+    const upiId = this.value.trim();
+    const statusDiv = document.getElementById('verify-status');
+    
+    clearTimeout(debounceTimer);
+    
+    if (!upiId || !upiId.includes('@')) {
+        statusDiv.style.display = 'none';
+        verifiedName = null;
+        return;
+    }
+    
+    debounceTimer = setTimeout(() => {
+        statusDiv.innerHTML = '<span class="spinner"></span> Verifying...';
+        statusDiv.style.display = 'flex';
+        
+        fetch('/upi-verify', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({upi_id: upiId})
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.valid) {
+                verifiedName = data.name;
+                statusDiv.innerHTML = '<span class="verify-success">✓ ' + data.name + '</span>';
+            } else {
+                verifiedName = null;
+                statusDiv.innerHTML = '<span class="verify-error">✗ ' + data.error + '</span>';
+            }
+        });
+    }, 500);
+});
+
+function setAmount(value) {
+    document.getElementById('amount').value = value;
+}
+
+function selectContact(upiId, name) {
+    document.getElementById('upi-id').value = upiId;
+    verifiedName = name;
+    document.getElementById('verify-status').innerHTML = '<span class="verify-success">✓ ' + name + '</span>';
+    document.getElementById('verify-status').style.display = 'flex';
+}
+
+async function processPayment() {
+    const upiId = document.getElementById('upi-id').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+    const note = document.getElementById('note').value.trim();
+    
+    // Validation
+    if (!upiId || !upiId.includes('@')) {
+        alert('Please enter a valid UPI ID');
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!verifiedName) {
+        alert('Please wait for UPI ID verification');
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('pay-btn-text').style.display = 'none';
+    document.getElementById('pay-btn-spinner').style.display = 'inline-block';
+    
+    try {
+        const response = await fetch('/upi-send', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                upi_id: upiId,
+                amount: amount,
+                note: note,
+                recipient_name: verifiedName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Update balance
+            document.getElementById('current-balance').textContent = data.new_balance.toFixed(2);
+            
+            // Show success screen
+            document.getElementById('success-amount').textContent = amount.toFixed(2);
+            document.getElementById('success-recipient').textContent = verifiedName;
+            document.getElementById('success-upi-id').textContent = upiId;
+            document.getElementById('success-ref').textContent = data.upi_ref;
+            document.getElementById('success-time').textContent = new Date().toLocaleString();
+            
+            document.getElementById('payment-form').style.display = 'none';
+            document.getElementById('success-screen').style.display = 'block';
+            
+            // Check if account locked
+            if (data.locked) {
+                setTimeout(() => {
+                    alert('⚠️ Budget limit reached! Account is now locked.');
+                }, 1000);
+            }
+        } else {
+            alert('Payment failed: ' + data.error);
+            document.getElementById('pay-btn-text').style.display = 'inline';
+            document.getElementById('pay-btn-spinner').style.display = 'none';
+        }
+    } catch (error) {
+        alert('Payment failed. Please try again.');
+        document.getElementById('pay-btn-text').style.display = 'inline';
+        document.getElementById('pay-btn-spinner').style.display = 'none';
+    }
+}
+
+function resetForm() {
+    document.getElementById('payment-form').style.display = 'block';
+    document.getElementById('success-screen').style.display = 'none';
+    
+    document.getElementById('upi-id').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('note').value = '';
+    document.getElementById('verify-status').style.display = 'none';
+    verifiedName = null;
+    
+    document.getElementById('pay-btn-text').style.display = 'inline';
+    document.getElementById('pay-btn-spinner').style.display = 'none';
+}
+</script>
+{% endblock %}

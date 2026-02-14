@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Emergency Transactions - Spendy{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upi-container">
+        <div class="welcome-card">
+            <h1>🚨 Emergency Transactions</h1>
+            <p>Request emergency payments when your account is locked</p>
+        </div>
+
+        <!-- Trusted Contacts Status -->
+        <div class="stats-grid" style="margin-bottom: 2rem;">
+            <div class="stat-card {% if contacts|length >= 5 %}success{% elif contacts|length > 0 %}info{% else %}danger{% endif %}">
+                <div class="stat-icon">👥</div>
+                <div class="stat-content">
+                    <h3>Trusted Contacts</h3>
+                    <p class="stat-value">{{ contacts|length }}/5</p>
+                </div>
+            </div>
+
+            <div class="stat-card {% if locked %}danger{% else %}success{% endif %}">
+                <div class="stat-icon">{% if locked %}🔒{% else %}🔓{% endif %}</div>
+                <div class="stat-content">
+                    <h3>Account Status</h3>
+                    <p class="stat-value" style="font-size: 1.5rem;">{% if locked %}Locked{% else %}Active{% endif %}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- How It Works -->
+        <div style="background: var(--dark-card); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 2.5rem; margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1.5rem;">📚 How Emergency Transactions Work</h2>
+            
+            <div style="display: grid; gap: 1.5rem;">
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 1.2rem;">1</div>
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Add 5 Trusted Contacts</h3>
+                        <p style="color: var(--text-light); margin: 0;">Add friends or family members who can approve emergency payments</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 1.2rem;">2</div>
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Account Locks at Budget Limit</h3>
+                        <p style="color: var(--text-light); margin: 0;">When you reach your spending limit, your account automatically locks</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 1.2rem;">3</div>
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Request Emergency Payment</h3>
+                        <p style="color: var(--text-light); margin: 0;">Enter payment details and submit request to your trusted contacts</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 1.2rem;">4</div>
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">One Contact Approves</h3>
+                        <p style="color: var(--text-light); margin: 0;">Only ONE trusted contact needs to approve for the payment to go through</p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; align-items: start;">
+                    <div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 700; font-size: 1.2rem;">5</div>
+                    <div>
+                        <h3 style="margin-bottom: 0.5rem;">Payment Processes</h3>
+                        <p style="color: var(--text-light); margin: 0;">Once approved, the emergency payment goes through immediately</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Request Emergency Payment Form -->
+        {% if locked %}
+        <div style="background: var(--dark-card); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 2.5rem; margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--danger);">🚨 Request Emergency Payment</h2>
+            
+            {% if contacts|length == 0 %}
+            <div class="alert alert-warning">
+                <p>⚠️ You need to add trusted contacts first before requesting emergency payments.</p>
+                <a href="/trusted-contacts" class="btn btn-primary" style="margin-top: 1rem;">Add Trusted Contacts</a>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label>Recipient UPI ID</label>
+                <input type="text" id="emergency-upi-id" class="form-control" placeholder="name@paytm">
+                <div id="emergency-verify-status" class="upi-verify-status" style="display: none;"></div>
+            </div>
+            
+            <div class="form-group">
+                <label>Amount (₹)</label>
+                <input type="number" id="emergency-amount" class="form-control" placeholder="1000" min="1" step="0.01">
+            </div>
+
+            <div class="upi-quick-amounts">
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(100)">₹100</button>
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(500)">₹500</button>
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(1000)">₹1000</button>
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(2000)">₹2000</button>
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(5000)">₹5000</button>
+                <button class="quick-amount-btn" onclick="setEmergencyAmount(10000)">₹10000</button>
+            </div>
+            
+            <div class="form-group">
+                <label>Reason for Emergency Payment</label>
+                <textarea id="emergency-note" class="form-control" placeholder="Medical emergency, car repair, etc." rows="3"></textarea>
+            </div>
+            
+            <button class="btn btn-danger btn-large" onclick="requestEmergencyPayment()" style="width: 100%;">
+                <span id="emergency-btn-text">🚨 Request Emergency Payment</span>
+                <span id="emergency-spinner" class="spinner" style="display: none;"></span>
+            </button>
+            
+            <p style="margin-top: 1rem; color: var(--text-light); font-size: 0.9rem; text-align: center;">
+                This will be sent to your {{ contacts|length }} trusted contact(s) for approval
+            </p>
+            {% endif %}
+        </div>
+        {% else %}
+        <div style="background: rgba(0, 230, 118, 0.1); border: 2px solid rgba(0, 230, 118, 0.3); border-radius: 24px; padding: 2rem; text-align: center;">
+            <h3 style="color: var(--success); margin-bottom: 1rem;">✅ Your Account is Active</h3>
+            <p style="color: var(--text-light); margin: 0;">Emergency transactions are only available when your account is locked. You can make regular payments now.</p>
+            <a href="/upi-pay" class="btn btn-primary" style="margin-top: 1rem;">Make Regular Payment</a>
+        </div>
+        {% endif %}
+
+        <!-- Pending Requests -->
+        {% if pending_requests|length > 0 %}
+        <div style="background: var(--dark-card); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 2.5rem; margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 1.5rem;">⏳ Pending Approval Requests</h2>
+            
+            {% for req in pending_requests %}
+            <div style="background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.3); border-radius: 16px; padding: 1.5rem; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                    <div>
+                        <h3 style="color: var(--warning); margin-bottom: 0.5rem;">₹{{ "%.2f"|format(req.amount) }}</h3>
+                        <p style="color: var(--text-light); font-size: 0.9rem; margin: 0;">To: {{ req.recipient_name }}</p>
+                        <p style="color: var(--text-light); font-size: 0.85rem; margin: 0.3rem 0 0 0;">{{ req.upi_id }}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span style="background: rgba(255, 184, 0, 0.2); padding: 0.3rem 0.8rem; border-radius: 8px; font-size: 0.85rem; color: var(--warning);">Pending</span>
+                    </div>
+                </div>
+                
+                {% if req.note %}
+                <p style="color: var(--text); margin-bottom: 1rem;"><strong>Reason:</strong> {{ req.note }}</p>
+                {% endif %}
+                
+                <p style="color: var(--text-light); font-size: 0.85rem; margin-bottom: 1rem;">
+                    Requested: {{ req.requested_at[:16] }}
+                </p>
+                
+                <!-- Simulate approval buttons (in real app, only contacts would see these) -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <button class="btn btn-success" onclick="approveEmergency({{ req.id }})">
+                        ✅ Approve (Simulate)
+                    </button>
+                    <button class="btn btn-danger" onclick="rejectEmergency({{ req.id }})">
+                        ❌ Reject (Simulate)
+                    </button>
+                </div>
+                <p style="margin-top: 0.8rem; color: var(--text-light); font-size: 0.8rem; text-align: center;">
+                    In real use, only your trusted contacts would see approval buttons
+                </p>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Manage Contacts -->
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="/trusted-contacts" class="btn btn-large" style="background: rgba(255,255,255,0.1); width: 100%; max-width: 400px;">
+                👥 Manage Trusted Contacts ({{ contacts|length }})
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+let emergencyVerifiedName = null;
+
+// UPI ID Verification for emergency payment
+document.addEventListener('DOMContentLoaded', function() {
+    const upiInput = document.getElementById('emergency-upi-id');
+    if (upiInput) {
+        let debounceTimer = null;
+        
+        upiInput.addEventListener('input', function() {
+            const upiId = this.value.trim();
+            const statusDiv = document.getElementById('emergency-verify-status');
+            
+            clearTimeout(debounceTimer);
+            
+            if (!upiId || !upiId.includes('@')) {
+                statusDiv.style.display = 'none';
+                emergencyVerifiedName = null;
+                return;
+            }
+            
+            debounceTimer = setTimeout(async () => {
+                statusDiv.innerHTML = '<span class="spinner"></span> Verifying...';
+                statusDiv.style.display = 'flex';
+                
+                try {
+                    const response = await fetch('/upi-verify', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({upi_id: upiId})
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.valid) {
+                        emergencyVerifiedName = data.name;
+                        statusDiv.innerHTML = '<span class="verify-success">✓ ' + data.name + '</span>';
+                    } else {
+                        emergencyVerifiedName = null;
+                        statusDiv.innerHTML = '<span class="verify-error">✗ ' + data.error + '</span>';
+                    }
+                } catch (error) {
+                    statusDiv.style.display = 'none';
+                }
+            }, 500);
+        });
+    }
+});
+
+function setEmergencyAmount(value) {
+    document.getElementById('emergency-amount').value = value;
+}
+
+async function requestEmergencyPayment() {
+    const upiId = document.getElementById('emergency-upi-id').value.trim();
+    const amount = parseFloat(document.getElementById('emergency-amount').value);
+    const note = document.getElementById('emergency-note').value.trim();
+    
+    if (!upiId || !upiId.includes('@')) {
+        alert('Please enter a valid UPI ID');
+        return;
+    }
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!emergencyVerifiedName) {
+        alert('Please wait for UPI ID verification');
+        return;
+    }
+    
+    if (!note) {
+        if (!confirm('No reason provided. Continue anyway?')) {
+            return;
+        }
+    }
+    
+    // Show loading
+    document.getElementById('emergency-btn-text').style.display = 'none';
+    document.getElementById('emergency-spinner').style.display = 'inline-block';
+    
+    try {
+        const response = await fetch('/request-emergency-transaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                upi_id: upiId,
+                amount: amount,
+                note: note,
+                recipient_name: emergencyVerifiedName
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.error);
+            document.getElementById('emergency-btn-text').style.display = 'inline';
+            document.getElementById('emergency-spinner').style.display = 'none';
+        }
+    } catch (error) {
+        alert('Failed to send request. Please try again.');
+        document.getElementById('emergency-btn-text').style.display = 'inline';
+        document.getElementById('emergency-spinner').style.display = 'none';
+    }
+}
+
+async function approveEmergency(requestId) {
+    if (!confirm('Approve this emergency payment? (Simulating trusted contact approval)')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/approve-emergency-transaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                request_id: requestId,
+                contact_name: 'Demo Contact'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('✅ ' + data.message + '\nUPI Ref: ' + data.upi_ref);
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.error);
+        }
+    } catch (error) {
+        alert('Failed to approve. Please try again.');
+    }
+}
+
+async function rejectEmergency(requestId) {
+    const reason = prompt('Reason for rejection (optional):') || 'Not approved';
+    
+    try {
+        const response = await fetch('/reject-emergency-transaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                request_id: requestId,
+                reason: reason
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Request rejected');
+            window.location.reload();
+        } else {
+            alert('❌ ' + data.error);
+        }
+    } catch (error) {
+        alert('Failed to reject. Please try again.');
+    }
+}
+</script>
+{% endblock %}

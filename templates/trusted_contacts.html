@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Trusted Contacts - Spendy{% endblock %}
+{% block content %}
+<div class="container">
+    <h1 style="margin-bottom: 2rem;">👥 Trusted Contacts</h1>
+    <p style="color: var(--text-light); margin-bottom: 3rem;">Add friends or family who can help unlock your account in emergencies</p>
+    
+    <div class="stats-grid">
+        <div class="stat-card primary" style="cursor: pointer;" onclick="showAddContact()">
+            <div class="stat-icon">➕</div>
+            <div class="stat-content">
+                <h3>Add Contact</h3>
+                <p style="color: var(--primary); font-size: 1rem;">Click to add</p>
+            </div>
+        </div>
+        
+        {% for contact in contacts %}
+        <div class="stat-card success">
+            <div class="stat-icon">👤</div>
+            <div class="stat-content">
+                <h3>{{ contact.name }}</h3>
+                <p style="font-size: 0.9rem; color: var(--text-light);">{{ contact.phone }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="modal" id="add-contact-modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeContactModal()">&times;</button>
+        <h2 style="margin-bottom: 2rem;">Add Trusted Contact</h2>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="contact-name" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" id="contact-phone" class="form-control">
+        </div>
+        <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="contact-email" class="form-control">
+        </div>
+        <button class="btn btn-success btn-large" style="width: 100%;" onclick="addContact()">Add Contact</button>
+    </div>
+</div>
+
+<script>
+function showAddContact() { document.getElementById('add-contact-modal').classList.add('active'); }
+function closeContactModal() { document.getElementById('add-contact-modal').classList.remove('active'); }
+async function addContact() {
+    const name = document.getElementById('contact-name').value;
+    const phone = document.getElementById('contact-phone').value;
+    const email = document.getElementById('contact-email').value;
+    
+    const res = await fetch('/trusted-contacts', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({action: 'add', name, phone, email})
+    });
+    
+    if ((await res.json()).success) {
+        alert('Contact added!');
+        window.location.reload();
+    }
+}
+</script>
+{% endblock %}

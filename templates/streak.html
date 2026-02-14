@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Savings Streak - Spendy{% endblock %}
+{% block content %}
+<div class="container">
+    <div class="welcome-card">
+        <h1>🔥 Savings Streak</h1>
+        <p>Stay under budget to build your streak and earn rewards!</p>
+        <div style="font-size: 5rem; margin: 2rem 0;">{{ streak.current }}</div>
+        <p style="font-size: 1.5rem;">Current Streak</p>
+        <p style="color: var(--text-light);">Best: {{ streak.best }} months</p>
+    </div>
+
+    {% if saved_amount > 0 %}
+    <div style="background: rgba(0, 230, 118, 0.1); border: 2px solid rgba(0, 230, 118, 0.3); border-radius: 24px; padding: 2rem; text-align: center; margin: 2rem 0;">
+        <h2 style="color: var(--success);">✅ You're saving money this month!</h2>
+        <p style="font-size: 2rem; font-family: 'Space Mono', monospace; margin: 1rem 0;">₹{{ "%.2f"|format(saved_amount) }}</p>
+        <p>Keep it up to extend your streak!</p>
+    </div>
+    {% endif %}
+
+    <div class="stats-grid">
+        {% for reward in rewards %}
+        <div class="stat-card success">
+            <div class="stat-icon">{{ reward.title.split()[0] }}</div>
+            <div class="stat-content">
+                <h3>{{ reward.title.split('0️⃣')[1] if '0️⃣' in reward.title else reward.title[2:] }}</h3>
+                <p style="font-size: 0.9rem;">{{ reward.description }}</p>
+                {% if reward.get('reward') %}
+                <p style="color: var(--success); font-weight: 700; margin-top: 0.5rem;">{{ reward.reward }}</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Spendy - Smart Budget Tracker{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.0">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" style="text-decoration: none;">
+                <div class="nav-brand">💸 Spendy</div>
+            </a>
+            <div class="nav-links">
+                <a href="/" {% if request.path == '/' %}class="active"{% endif %}>Dashboard</a>
+                <a href="/upi-pay" {% if request.path == '/upi-pay' %}class="active"{% endif %}>💳 Pay</a>
+                <a href="/emergency-approvals" {% if request.path == '/emergency-approvals' %}class="active"{% endif %}>🚨 Emergency</a>
+                <a href="/trusted-contacts" {% if request.path == '/trusted-contacts' %}class="active"{% endif %}>Contacts</a>
+                <a href="/streak" {% if request.path == '/streak' %}class="active"{% endif %}>Streak</a>
+                <a href="/analytics" {% if request.path == '/analytics' %}class="active"{% endif %}>Analytics</a>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

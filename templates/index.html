@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Spendy{% endblock %}
+
+{% block content %}
+<div class="container">
+    {% if data.budget.monthly == 0 %}
+    <div class="welcome-card">
+        <h1>👋 Welcome to Spendy!</h1>
+        <p>Your smart budget tracker with built-in UPI payments</p>
+        <a href="/setup-budget" class="btn btn-primary btn-large">Set Up Budget</a>
+    </div>
+    {% else %}
+    
+    {% if data.lock_status.locked %}
+    <div class="alert alert-danger">
+        <h3>🔒 Account Locked</h3>
+        <p>You've reached your monthly budget limit.</p>
+        
+        {% if data.trusted_contacts and data.trusted_contacts|length > 0 %}
+        <div style="margin-top: 1.5rem;">
+            <button class="btn btn-primary btn-large" onclick="showEmergencyPayment()" style="width: 100%; max-width: 400px;">
+                🚨 Request Emergency Transaction
+            </button>
+            <p style="margin-top: 1rem; color: var(--text-light); font-size: 0.9rem;">
+                Your {{ data.trusted_contacts|length }} trusted contact(s) will need to approve
+            </p>
+        </div>
+        {% else %}
+        <div style="margin-top: 1.5rem;">
+            <a href="/trusted-contacts" class="btn btn-primary btn-large" style="width: 100%; max-width: 400px; text-align: center; display: inline-block;">
+                👥 Add Trusted Contacts First
+            </a>
+            <p style="margin-top: 1rem; color: var(--text-light); font-size: 0.9rem;">
+                Add 5 trusted people to enable emergency transactions
+            </p>
+        </div>
+        {% endif %}
+        
+        <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 12px; text-align: center;">
+            <small style="color: var(--text-light);">Or wait 24 hours for automatic unlock</small>
+        </div>
+    </div>
+    {% elif stats.warning %}
+    <div class="alert alert-warning">
+        <h3>⚠️ Warning: Spending Too Fast!</h3>
+        <p>You've spent {{ "%.1f"|format(stats.percent_spent) }}% of your budget before mid-month. At this rate, you'll run out in {{ stats.days_until_broke|int }} days.</p>
+    </div>
+    {% endif %}
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <h3>Monthly Budget</h3>
+                <p class="stat-value">₹{{ "%.0f"|format(stats.monthly_budget) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card {% if stats.remaining < stats.monthly_budget * 0.3 %}danger{% else %}success{% endif %}">
+            <div class="stat-icon">💵</div>
+            <div class="stat-content">
+                <h3>Remaining</h3>
+                <p class="stat-value">₹{{ "%.0f"|format(stats.remaining) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <h3>Daily Safe Spend</h3>
+                <p class="stat-value">₹{{ "%.0f"|format(stats.daily_safe_spend) }}</p>
+            </div>
+        </div>
+
+        <div class="stat-card accent">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-content">
+                <h3>Current Streak</h3>
+                <p class="stat-value">{{ data.streak.current }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Daily Spend Card -->
+    <div class="daily-spend-card">
+        <h2>💡 Today's Smart Spending Tip</h2>
+        <p class="daily-amount">You can spend <strong>₹{{ "%.0f"|format(stats.daily_safe_spend) }}</strong> today to stay within your limit.</p>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ stats.percent_spent }}%"></div>
+        </div>
+        <p class="progress-label">{{ "%.1f"|format(stats.percent_spent) }}% of budget used • {{ stats.days_remaining }} days remaining</p>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin: 2rem 0;">
+        <button class="btn btn-primary" style="width: 100%;" onclick="window.location.href='/upi-pay'">💳 Make UPI Payment</button>
+        <button class="btn btn-success" style="width: 100%;" onclick="showAddExpense()">+ Add Expense</button>
+        <button class="btn btn-large" style="width: 100%; background: rgba(255,255,255,0.1);" onclick="window.location.href='/setup-budget'">⚙️ Edit Budget</button>
+    </div>
+
+    <!-- Recent Transactions -->
+    {% if transactions %}
+    <div class="transactions-list">
+        <h2>Recent Transactions</h2>
+        {% for transaction in transactions|reverse %}
+        <div class="transaction-item">
+            <div class="transaction-icon">
+                {% if transaction.type == 'upi_payment' %}💸
+                {% else %}🛍️{% endif %}
+            </div>
+            <div class="transaction-details">
+                <div class="transaction-category">{{ transaction.category }}</div>
+                <div class="transaction-description">{{ transaction.description }}</div>
+                <div class="transaction-time">{{ transaction.timestamp[:16] }}</div>
+            </div>
+            <div class="transaction-amount">-₹{{ "%.2f"|format(transaction.amount) }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% endif %}
+</div>
+
+<!-- Add Expense Modal -->
+<div class="modal" id="expense-modal">
+    <div class="modal-content">
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+        <h2 style="margin-bottom: 2rem;">Add Expense</h2>
+        
+        <div class="form-group">
+            <label>Amount (₹)</label>
+            <input type="number" id="expense-amount" class="form-control" placeholder="0.00" min="0" step="0.01">
+        </div>
+        
+        <div class="form-group">
+            <label>Category</label>
+            <select id="expense-category" class="form-control">
+                <option value="">Select category...</option>
+                <option value="Food">🍔 Food & Dining</option>
+                <option value="Transport">🚗 Transport</option>
+                <option value="Shopping">🛍️ Shopping</option>
+                <option value="Bills">📱 Bills & Utilities</option>
+                <option value="Entertainment">🎬 Entertainment</option>
+                <option value="Health">💊 Health & Medical</option>
+                <option value="Education">📚 Education</option>
+                <option value="Other">📦 Other</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label>Description (Optional)</label>
+            <input type="text" id="expense-description" class="form-control" placeholder="What did you buy?">
+        </div>
+        
+        <button class="btn btn-success btn-large" style="width: 100%;" onclick="addExpense()">Add Expense</button>
+    </div>
+</div>
+
+<script>
+function showAddExpense() {
+    document.getElementById('expense-modal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('expense-modal').classList.remove('active');
+}
+
+async function addExpense() {
+    const amount = parseFloat(document.getElementById('expense-amount').value);
+    const category = document.getElementById('expense-category').value;
+    const description = document.getElementById('expense-description').value;
+    
+    if (!amount || amount <= 0) {
+        alert('Please enter a valid amount');
+        return;
+    }
+    
+    if (!category) {
+        alert('Please select a category');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/add-transaction', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({amount, category, description})
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('Expense added successfully!');
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (error) {
+        alert('Failed to add expense. Please try again.');
+    }
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeModal();
+});
+
+// Close modal on click outside
+document.getElementById('expense-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+
+// Show emergency payment request modal
+function showEmergencyPayment() {
+    // For now, redirect to emergency approvals page
+    window.location.href = '/emergency-approvals';
+}
+</script>
+{% endblock %}
