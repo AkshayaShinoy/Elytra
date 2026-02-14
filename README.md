@@ -1,3 +1,7 @@
+## Team Name - Elytra
+# Group Members
+1. Crystal Maria Biju - Jain University,Kochi
+2. Akshaya Shinoy - Jain University,Kochi
 # 💰 Spendy - Budget Tracker with Built-in UPI
 
 A modern Flask-based budget tracking app with **simulated UPI payment functionality** built right in!
