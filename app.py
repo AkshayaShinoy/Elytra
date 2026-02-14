@@ -50,7 +50,7 @@ def load_data():
         'upi_contacts': [],  # Recent UPI contacts
         'balance': 10000.0  # Simulated wallet balance
     }
-    }
+    
 
 def save_data(data):
     with open(DATA_FILE, 'w') as f:
